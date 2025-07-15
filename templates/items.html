@@ -1,0 +1,180 @@
+{% extends "base.html" %}
+
+{% block title %}Items - Inventory Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1>
+                <i class="fas fa-box"></i> Items
+            </h1>
+            <a href="{{ url_for('add_item') }}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Item
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filters and Search -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">Search</label>
+                <input type="text" name="search" id="search" class="form-control" 
+                       placeholder="Search by name, description, or SKU..." value="{{ search }}">
+            </div>
+            <div class="col-md-3">
+                <label for="category" class="form-label">Category</label>
+                <select name="category" id="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                    <option value="{{ category.id }}" {{ 'selected' if current_category == category.id }}>
+                        {{ category.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="sort" class="form-label">Sort By</label>
+                <select name="sort" id="sort" class="form-select">
+                    <option value="name" {{ 'selected' if sort_by == 'name' }}>Name</option>
+                    <option value="quantity" {{ 'selected' if sort_by == 'quantity' }}>Quantity</option>
+                    <option value="price" {{ 'selected' if sort_by == 'price' }}>Price</option>
+                    <option value="created" {{ 'selected' if sort_by == 'created' }}>Date Added</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-outline-primary">
+                        <i class="fas fa-search"></i> Filter
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Items Table -->
+<div class="card">
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>SKU</th>
+                        <th>Description</th>
+                        <th>Category</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Total Value</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in items.items %}
+                    <tr class="{{ 'table-warning' if item.quantity < 10 else '' }}">
+                        <td><strong>{{ item.name }}</strong></td>
+                        <td><code>{{ item.sku or 'N/A' }}</code></td>
+                        <td>
+                            {% if item.description %}
+                                {{ item.description[:50] }}{% if item.description|length > 50 %}...{% endif %}
+                            {% else %}
+                                <em class="text-muted">No description</em>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary">{{ item.category.name }}</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-{{ 'danger' if item.quantity == 0 else 'warning' if item.quantity < 10 else 'success' }}">
+                                {{ item.quantity }}
+                            </span>
+                        </td>
+                        <td>${{ "%.2f"|format(item.price) }}</td>
+                        <td><strong>${{ "%.2f"|format(item.quantity * item.price) }}</strong></td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <a href="{{ url_for('edit_item', id=item.id) }}" 
+                                   class="btn btn-sm btn-outline-primary" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{{ url_for('stock_movements') }}?item={{ item.id }}" 
+                                   class="btn btn-sm btn-outline-info" title="View Movements">
+                                    <i class="fas fa-exchange-alt"></i>
+                                </a>
+                                <a href="{{ url_for('delete_item', id=item.id) }}" 
+                                   class="btn btn-sm btn-outline-danger" title="Delete"
+                                   onclick="return confirm('Are you sure you want to delete this item?')">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if items.pages > 1 %}
+        <nav aria-label="Page navigation" class="mt-4">
+            <ul class="pagination justify-content-center">
+                {% if items.has_prev %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('items', page=items.prev_num, category=current_category, search=search, sort=sort_by) }}">
+                        <i class="fas fa-chevron-left"></i> Previous
+                    </a>
+                </li>
+                {% endif %}
+                
+                {% for page_num in items.iter_pages() %}
+                    {% if page_num %}
+                        {% if page_num != items.page %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('items', page=page_num, category=current_category, search=search, sort=sort_by) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                        {% else %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ page_num }}</span>
+                        </li>
+                        {% endif %}
+                    {% else %}
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if items.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="{{ url_for('items', page=items.next_num, category=current_category, search=search, sort=sort_by) }}">
+                        Next <i class="fas fa-chevron-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+
+        <!-- Summary -->
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <p class="text-muted">
+                    Showing {{ items.items|length }} of {{ items.total }} items
+                </p>
+            </div>
+            <div class="col-md-6 text-end">
+                <p class="text-muted">
+                    Total Value: <strong>${{ "%.2f"|format(items.items|sum(attribute='quantity')|float * items.items|sum(attribute='price')|float) }}</strong>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

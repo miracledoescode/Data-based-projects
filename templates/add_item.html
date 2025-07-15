@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Add Item - Inventory Management{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-plus"></i> Add New Item
+                </h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="itemForm">
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Item Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="sku" class="form-label">SKU</label>
+                                <input type="text" class="form-control" id="sku" name="sku" 
+                                       placeholder="e.g., PROD-001">
+                                <div class="form-text">Leave empty to auto-generate</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="3"
+                                  placeholder="Detailed description of the item..."></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="quantity" class="form-label">Initial Quantity *</label>
+                                <input type="number" class="form-control" id="quantity" name="quantity" 
+                                       min="0" value="0" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="price" class="form-label">Unit Price ($) *</label>
+                                <input type="number" class="form-control" id="price" name="price" 
+                                       step="0.01" min="0" value="0.00" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="total_value" class="form-label">Total Value</label>
+                                <input type="text" class="form-control" id="total_value" readonly 
+                                       value="$0.00" style="background-color: #f8f9fa;">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="category_id" class="form-label">Category *</label>
+                        <select class="form-select" id="category_id" name="category_id" required>
+                            <option value="">Select a category</option>
+                            {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">
+                            Don't see your category? <a href="{{ url_for('add_category') }}" target="_blank">Add a new one</a>
+                        </div>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('items') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i> Back to Items
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Add Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Calculate total value automatically
+function updateTotalValue() {
+    const quantity = parseFloat(document.getElementById('quantity').value) || 0;
+    const price = parseFloat(document.getElementById('price').value) || 0;
+    const total = quantity * price;
+    document.getElementById('total_value').value = '$' + total.toFixed(2);
+}
+
+document.getElementById('quantity').addEventListener('input', updateTotalValue);
+document.getElementById('price').addEventListener('input', updateTotalValue);
+
+// Auto-generate SKU based on name
+document.getElementById('name').addEventListener('input', function() {
+    const name = this.value;
+    const skuField = document.getElementById('sku');
+    
+    if (!skuField.value && name) {
+        const sku = name.toUpperCase()
+            .replace(/[^A-Z0-9]/g, '-')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '')
+            .substring(0, 20);
+        skuField.placeholder = 'e.g., ' + sku;
+    }
+});
+</script>
+{% endblock %}
